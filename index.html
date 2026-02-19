@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tablero de Proyectos</title>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    
+    // CONFIGURA TU FIREBASE AQUI
+    // 
+    // PASOS PARA CONFIGURAR FIREBASE:
+    // 1. Ve a https://console.firebase.google.com/
+    // 2. Crea un nuevo proyecto (o usa uno existente)
+    // 3. Ve a "Configuración del proyecto" (⚙️) > "Tus apps" > "Web" (</>)
+    // 4. Registra tu app y copia la configuración que aparece
+    // 5. Reemplaza los valores de abajo con tu configuración
+    // 6. IMPORTANTE: Ve a "Firestore Database" y crea una base de datos en modo de prueba
+    // 7. En las reglas de Firestore, permite lectura/escritura temporalmente:
+    //    rules_version = '2';
+    //    service cloud.firestore {
+    //      match /databases/{database}/documents {
+    //        match /{document=**} {
+    //          allow read, write: if true;
+    //        }
+    //      }
+    //    }
+    //
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_PROYECTO.firebaseapp.com",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_PROYECTO.appspot.com",
+      messagingSenderId: "TU_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
+
+    // Inicializar Firebase solo si estÃ¡ configurado
+    if (firebaseConfig.apiKey !== "TU_API_KEY") {
+      window.firebaseApp = initializeApp(firebaseConfig);
+      window.firestore = getFirestore(window.firebaseApp);
+      window.firebaseReady = true;
+    } else {
+      window.firebaseReady = false;
+      console.warn("Firebase no configurado. El sistema funcionarÃ¡ solo localmente.");
+    }
+  </script>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div class="app-container">
+  <h1>INGENIERIA Y MECANIZADOS DE COLOMBIA S.A.S</h1>
+  
+  <div id="sync-status" class="sync-status local">
+    <span class="sync-dot"></span>
+    <span id="sync-status-text">Modo local</span>
+  </div>
+
+  <div class="tabs">
+    <button id="tab-dashboard-btn" class="tab-button active">
+      <span>Tablero</span>
+    </button>
+    <button id="tab-gantt-btn" class="tab-button">
+      <span>Gantt</span>
+    </button>
+    <button id="tab-editor-btn" class="tab-button">
+      <span>Editar proyecto</span>
+    </button>
+  </div>
+
+  <section id="tab-dashboard" class="tab-content">
+    <div class="dashboard-top">
+      <!-- === Carrusel de imagenes === -->
+      <section class="carousel">
+        <div class="carousel-image-wrapper">
+          <img id="project-image" src="" alt="Proyecto actual" />
+          <div class="carousel-overlay"></div>
+
+          <div class="carousel-info">
+            <div class="carousel-title" id="project-title"></div>
+            <div class="carousel-status">
+              <div class="status-dot" id="project-status-dot"></div>
+              <span id="project-status-text"></span>
+            </div>
+            <div class="carousel-quick-actions">
+              <button id="quick-go-project-btn" class="carousel-quick-btn" type="button" disabled>Ir al proyecto</button>
+              <button id="quick-mark-progress-btn" class="carousel-quick-btn" type="button" disabled>Marcar avance</button>
+              <button id="quick-view-critical-btn" class="carousel-quick-btn" type="button" disabled>Ver tareas criticas</button>
+            </div>
+          </div>
+
+          <div class="carousel-controls">
+            <button id="prev-btn" class="carousel-button">&#x25C0;</button>
+            <button id="next-btn" class="carousel-button">&#x25B6;</button>
+          </div>
+
+          <div class="carousel-indicators" id="indicators"></div>
+          
+          <button id="expand-image-btn" class="carousel-expand-btn" title="Ver imagen completa">
+            &#x26F6;
+          </button>
+        </div>
+      </section>
+
+      <aside class="done-checklist-panel">
+        <div class="done-checklist-header">
+          <div class="done-checklist-title">Checklist terminados</div>
+          <span id="done-checklist-count" class="done-checklist-badge">0</span>
+        </div>
+        <div class="done-checklist-controls">
+          <label for="done-reopen-target">Al desmarcar:</label>
+          <select id="done-reopen-target">
+            <option value="pendiente" selected>Volver a pendiente</option>
+            <option value="proceso">Volver a proceso</option>
+          </select>
+        </div>
+        <div id="done-checklist" class="done-checklist-list"></div>
+      </aside>
+    </div>
+
+    <div class="dashboard-view-toolbar">
+      <div class="dashboard-view-switch" role="group" aria-label="Modo de vista del tablero">
+        <span class="dashboard-view-label">Vista</span>
+        <button id="view-compact-btn" class="dashboard-view-btn" type="button">Compacta</button>
+        <button id="view-detailed-btn" class="dashboard-view-btn active" type="button">Detallada</button>
+      </div>
+    </div>
+
+    <!-- === Modal para imagen completa === -->
+    <div id="image-modal" class="image-modal hidden">
+      <div class="image-modal-overlay"></div>
+      <div class="image-modal-content">
+        <button id="close-modal-btn" class="image-modal-close">âœ•</button>
+        <img id="modal-image" src="" alt="Imagen completa" />
+        <div class="image-modal-info">
+          <div class="image-modal-title" id="modal-title"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="critical-modal" class="critical-modal hidden" aria-hidden="true">
+      <div class="critical-modal-overlay"></div>
+      <div class="critical-modal-content" role="dialog" aria-modal="true" aria-labelledby="critical-modal-title">
+        <div class="critical-modal-head">
+          <h3 id="critical-modal-title" class="critical-modal-title">Tareas criticas</h3>
+          <button id="critical-modal-close-btn" class="critical-modal-close" type="button" aria-label="Cerrar">×</button>
+        </div>
+        <div id="critical-modal-body" class="critical-modal-body"></div>
+        <div class="critical-modal-actions">
+          <button id="critical-modal-go-btn" class="critical-modal-btn" type="button">Ir al proyecto</button>
+          <button id="critical-modal-mark-btn" class="critical-modal-btn primary" type="button">Marcar avance</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- === Tablero Kanban === -->
+    <section class="board">
+      <div class="column column-pendiente" data-status="pendiente">
+        <div class="column-header">
+          <div class="column-title">
+            <span class="column-title-dot"></span>
+            Pendiente
+          </div>
+          <span class="column-badge" id="count-pendiente"></span>
+        </div>
+        <div class="column-body" id="col-pendiente"></div>
+      </div>
+
+      <div class="column column-proceso" data-status="proceso">
+        <div class="column-header">
+          <div class="column-title">
+            <span class="column-title-dot"></span>
+            En Proceso
+          </div>
+          <span class="column-badge" id="count-proceso"></span>
+        </div>
+        <div class="column-body" id="col-proceso"></div>
+      </div>
+
+      <div class="column column-summary" id="project-summary-panel">
+        <div class="column-header">
+          <div class="column-title">
+            <span class="column-title-dot"></span>
+            Resumen y Estado
+          </div>
+          <span class="column-badge" id="summary-completion">0% completado</span>
+        </div>
+        <div class="column-body summary-body">
+          <div class="summary-grid">
+            <div class="summary-metric">
+              <span class="summary-metric-label">Total proyectos</span>
+              <strong id="summary-total-projects" class="summary-metric-value">0</strong>
+            </div>
+            <div class="summary-metric">
+              <span class="summary-metric-label">Terminados</span>
+              <strong id="summary-done-projects" class="summary-metric-value">0</strong>
+            </div>
+            <div class="summary-metric">
+              <span class="summary-metric-label">Pendientes</span>
+              <strong id="summary-pending-projects" class="summary-metric-value">0</strong>
+            </div>
+            <div class="summary-metric">
+              <span class="summary-metric-label">En proceso</span>
+              <strong id="summary-inprogress-projects" class="summary-metric-value">0</strong>
+            </div>
+          </div>
+          <div class="summary-progress-wrap">
+            <span class="summary-progress-label">Avance global</span>
+            <div class="summary-progress-track">
+              <div id="summary-progress-fill" class="summary-progress-fill"></div>
+            </div>
+          </div>
+          <div class="summary-active" id="summary-active-wrap">
+            <div id="summary-active-content">
+            <span class="summary-active-label">Proyecto activo</span>
+            <div id="summary-active-project" class="summary-active-name">Sin proyecto activo</div>
+            <div id="summary-active-status" class="summary-active-status">Estado: Sin datos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </section>
+
+  <section id="tab-gantt" class="tab-content hidden">
+    <div class="gantt-panel">
+      <div class="gantt-head">
+        <div>
+          <h2 class="gantt-title">Diagrama de Gantt</h2>
+          <p class="gantt-subtitle">Cada barra representa el rango de fechas de un proyecto.</p>
+        </div>
+        <div id="gantt-summary" class="gantt-summary"></div>
+      </div>
+
+      <div class="gantt-scroll">
+        <div id="gantt-grid" class="gantt-grid"></div>
+      </div>
+
+      <div id="gantt-empty" class="gantt-empty hidden">
+        No hay proyectos para mostrar en el diagrama de Gantt.
+      </div>
+    </div>
+  </section>
+  
+  <!-- === Pestaña de edición de proyecto === -->
+    <section id="tab-editor" class="tab-content hidden">
+    <div class="editor-header">
+      <div>
+        <h2 class="editor-title">Editar proyecto</h2>
+        <p class="editor-description">
+          Cambia nombre, etiqueta, responsable, entrega e imagen. La fecha de inicio se sincroniza automaticamente con la fecha del computador.
+        </p>
+      </div>
+      <div id="editor-save-state" class="editor-save-state clean">Sin cambios</div>
+    </div>
+
+    <div class="editor-layout">
+      <form id="project-editor-form" class="editor-form">
+        <div class="editor-row editor-project-row">
+          <button id="editor-prev-btn" class="editor-nav-btn" type="button">Proyecto anterior</button>
+
+          <label class="editor-field">
+            <span>Proyecto</span>
+            <select id="editor-project-select" class="editor-input">
+            </select>
+          </label>
+
+          <button id="editor-next-btn" class="editor-nav-btn" type="button">Siguiente proyecto</button>
+        </div>
+
+        <label class="editor-field">
+          <span>Nombre del proyecto</span>
+          <input id="editor-nombre" class="editor-input" type="text" required />
+        </label>
+
+        <input id="editor-estado" type="hidden" value="pendiente" />
+        <input id="editor-fecha-inicio" type="hidden" />
+
+        <div class="editor-row">
+          <label class="editor-field">
+            <span>Etiqueta</span>
+            <input id="editor-etiqueta" class="editor-input" type="text" placeholder="Ej: Marketing, Backend..." />
+          </label>
+
+          <label class="editor-field">
+            <span>Responsable</span>
+            <input id="editor-responsable" class="editor-input" type="text" required />
+          </label>
+        </div>
+
+        <label class="editor-field">
+          <span>Dependencias (IDs, opcional)</span>
+          <input id="editor-dependencies" class="editor-input" type="text" placeholder="Ej: 2,5" />
+          <span class="editor-hint">Si depende de otros proyectos, escribe los IDs separados por coma.</span>
+        </label>
+
+        <label class="editor-field">
+          <span>URL de la imagen (opcional)</span>
+          <input id="editor-imagen" class="editor-input" type="url" placeholder="https://..." />
+        </label>
+
+        <label class="editor-field">
+          <span>Imagen local (opcional)</span>
+          <input id="editor-imagen-file" class="editor-file-input" type="file" accept="image/*" />
+          <span class="editor-hint">
+            Puedes subir JPG, PNG, GIF o WEBP. Se guardan en el navegador local.
+          </span>
+        </label>
+
+        <label class="editor-field">
+          <span>Fecha de entrega</span>
+          <input id="editor-fecha-fin" class="editor-input" type="date" required />
+        </label>
+        <div id="editor-validation" class="editor-validation hidden" role="alert" aria-live="polite"></div>
+
+        <div class="editor-subtasks-wrap">
+          <h3 class="editor-subtasks-title">Subtareas sincronizadas</h3>
+          <div class="editor-subtasks-hint">Estas subtareas se sincronizan como requerimientos del checklist de proceso del proyecto.</div>
+          <div class="editor-subtask-create-row">
+            <input id="editor-subtask-name" class="editor-subtask-inline" type="text" placeholder="Nombre de subtarea" />
+            <button id="editor-add-subtask-btn" class="editor-subtask-add-btn" type="button">Agregar</button>
+          </div>
+          <div id="editor-subtasks-list" class="editor-subtask-list"></div>
+        </div>
+
+        <div class="editor-comments-wrap">
+          <h3 class="editor-comments-title">Comentarios</h3>
+          <p class="editor-comments-hint">Notas o recordatorios para este proyecto.</p>
+          <div id="editor-comments-list" class="editor-comments-list"></div>
+          <div class="editor-comment-form">
+            <textarea id="editor-comment-text" class="editor-comment-input" rows="2" placeholder="Escribe un comentario..."></textarea>
+            <input id="editor-comment-author" class="editor-comment-author" type="text" placeholder="Tu nombre (opcional)" />
+            <button id="editor-add-comment-btn" class="editor-comment-add-btn" type="button">Agregar comentario</button>
+          </div>
+        </div>
+
+        <div class="editor-actions">
+          <button id="editor-save-btn" type="submit" class="editor-btn editor-btn-save">Guardar ahora</button>
+          <button id="editor-create-btn" type="button" class="editor-btn editor-btn-create">Crear nuevo proyecto</button>
+          <button id="editor-duplicate-btn" type="button" class="editor-btn editor-btn-duplicate">Duplicar</button>
+          <button id="editor-delete-btn" type="button" class="editor-btn editor-btn-delete">Eliminar</button>
+          <button id="editor-undo-btn" type="button" class="editor-btn editor-btn-history">Deshacer</button>
+          <button id="editor-redo-btn" type="button" class="editor-btn editor-btn-history">Rehacer</button>
+        </div>
+      </form>
+
+      <aside class="editor-preview-card" aria-live="polite">
+        <div class="editor-preview-image-wrap">
+          <img id="editor-preview-image" src="" alt="Vista previa del proyecto" />
+        </div>
+        <div class="editor-preview-content">
+          <div id="editor-preview-title" class="editor-preview-title"></div>
+          <div class="editor-preview-meta">
+            <span id="editor-preview-tag" class="editor-preview-pill"></span>
+          </div>
+          <div id="editor-preview-owner" class="editor-preview-owner"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<script src="models/tarea.js"></script>
+<script src="models/proyecto.js"></script>
+<script src="services/eventos.js"></script>
+<script src="services/workflow.js"></script>
+<script src="services/progreso.js"></script>
+<script src="services/validaciones.js"></script>
+<script src="ui/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
