@@ -366,15 +366,17 @@
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
     import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBonFjjxvw-tAGHYuJxjXzVgl5iK-QRnNw",
-      authDomain: "panel-de-proyectos-c1b25.firebaseapp.com",
-      projectId: "panel-de-proyectos-c1b25",
-      storageBucket: "panel-de-proyectos-c1b25.firebasestorage.app",
-      messagingSenderId: "622871319887",
-      appId: "1:622871319887:web:a5dd37e07d3244e392213a",
-      measurementId: "G-KWJ3JYK4TN"
-    };
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBonFjjxvw-tAGHYuJxjXzVgl5iK-QRnNw",
+    authDomain: "panel-de-proyectos-c1b25.firebaseapp.com",
+    projectId: "panel-de-proyectos-c1b25",
+    storageBucket: "panel-de-proyectos-c1b25.firebasestorage.app",
+    messagingSenderId: "622871319887",
+    appId: "1:622871319887:web:a5dd37e07d3244e392213a",
+    measurementId: "G-KWJ3JYK4TN"
+  };
 
     try {
       const app = initializeApp(firebaseConfig);
