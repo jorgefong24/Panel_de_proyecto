@@ -1,52 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tablero de Proyectos</title>
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-    
-    // CONFIGURA TU FIREBASE AQUI
-    // 
-    // PASOS PARA CONFIGURAR FIREBASE:
-    // 1. Ve a https://console.firebase.google.com/
-    // 2. Crea un nuevo proyecto (o usa uno existente)
-    // 3. Ve a "Configuración del proyecto" (⚙️) > "Tus apps" > "Web" (</>)
-    // 4. Registra tu app y copia la configuración que aparece
-    // 5. Reemplaza los valores de abajo con tu configuración
-    // 6. IMPORTANTE: Ve a "Firestore Database" y crea una base de datos en modo de prueba
-    // 7. En las reglas de Firestore, permite lectura/escritura temporalmente:
-    //    rules_version = '2';
-    //    service cloud.firestore {
-    //      match /databases/{database}/documents {
-    //        match /{document=**} {
-    //          allow read, write: if true;
-    //        }
-    //      }
-    //    }
-    //
-    const firebaseConfig = {
-      apiKey: "TU_API_KEY",
-      authDomain: "TU_PROYECTO.firebaseapp.com",
-      projectId: "TU_PROJECT_ID",
-      storageBucket: "TU_PROYECTO.appspot.com",
-      messagingSenderId: "TU_SENDER_ID",
-      appId: "TU_APP_ID"
-    };
-
-    // Inicializar Firebase solo si estÃ¡ configurado
-    if (firebaseConfig.apiKey !== "TU_API_KEY") {
-      window.firebaseApp = initializeApp(firebaseConfig);
-      window.firestore = getFirestore(window.firebaseApp);
-      window.firebaseReady = true;
-    } else {
-      window.firebaseReady = false;
-      console.warn("Firebase no configurado. El sistema funcionarÃ¡ solo localmente.");
-    }
-  </script>
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
@@ -132,7 +89,7 @@
     <div id="image-modal" class="image-modal hidden">
       <div class="image-modal-overlay"></div>
       <div class="image-modal-content">
-        <button id="close-modal-btn" class="image-modal-close">âœ•</button>
+        <button id="close-modal-btn" class="image-modal-close">×</button>
         <img id="modal-image" src="" alt="Imagen completa" />
         <div class="image-modal-info">
           <div class="image-modal-title" id="modal-title"></div>
@@ -362,6 +319,42 @@
     </div>
   </section>
 </div>
+
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBonFjjxvw-tAGHYuJxjXzVgl5iK-QRnNw",
+    authDomain: "panel-de-proyectos-c1b25.firebaseapp.com",
+    projectId: "panel-de-proyectos-c1b25",
+    storageBucket: "panel-de-proyectos-c1b25.firebasestorage.app",
+    messagingSenderId: "622871319887",
+    appId: "1:622871319887:web:a5dd37e07d3244e392213a",
+    measurementId: "G-KWJ3JYK4TN"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const firestore = getFirestore(app);
+  
+  // Exportar a nivel global para app.js
+  window.firebaseApp = app;
+  window.firestore = firestore;
+  window.firebaseReady = true;
+  window.firebaseDoc = doc;
+  window.firebaseSetDoc = setDoc;
+  window.firebaseGetDoc = getDoc;
+  window.firebaseOnSnapshot = onSnapshot;
+  window.analytics = analytics;
+</script>
 
 <script src="models/tarea.js"></script>
 <script src="models/proyecto.js"></script>

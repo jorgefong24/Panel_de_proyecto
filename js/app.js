@@ -144,9 +144,13 @@
     if (!window.firebaseReady || !window.firestore) return null;
     
     try {
-      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-      const docRef = doc(window.firestore, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
-      const docSnap = await getDoc(docRef);
+      if (!window.firebaseDoc || !window.firebaseGetDoc) {
+        console.warn("Funciones de Firestore no disponibles");
+        return null;
+      }
+      
+      const docRef = window.firebaseDoc(window.firestore, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
+      const docSnap = await window.firebaseGetDoc(docRef);
       
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -167,9 +171,13 @@
     const payload = Array.isArray(cleaned.projects) ? cleaned.projects : [];
     
     try {
-      const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-      const docRef = doc(window.firestore, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
-      await setDoc(docRef, { 
+      if (!window.firebaseDoc || !window.firebaseSetDoc) {
+        console.warn("Funciones de Firestore no disponibles");
+        return false;
+      }
+      
+      const docRef = window.firebaseDoc(window.firestore, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
+      await window.firebaseSetDoc(docRef, { 
         projects: payload,
         lastUpdate: new Date().toISOString()
       }, { merge: false });
@@ -235,8 +243,12 @@
     if (!window.firebaseReady || !window.firestore) return;
     
     try {
-      const { doc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-      const docRef = doc(window.firestore, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
+      if (!window.firebaseDoc || !window.firebaseOnSnapshot) {
+        console.warn("Funciones de Firestore no disponibles para sincronización");
+        return;
+      }
+      
+      const docRef = window.firebaseDoc(window.firestore, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
       
       // Cancelar suscripción anterior si existe
       if (firestoreUnsubscribe) {
@@ -244,7 +256,7 @@
       }
       
       // Escuchar cambios en tiempo real
-      firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
+      firestoreUnsubscribe = window.firebaseOnSnapshot(docRef, (docSnap) => {
         if (docSnap.exists() && !isSyncing) {
           const data = docSnap.data();
           const newProjects = sanitizeLegacyScrumArtifacts(data.projects || []).projects || [];
